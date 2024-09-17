@@ -13,8 +13,8 @@ HTTPServer::HTTPServer(string ip, int port) :m_ip(ip), m_port(port) {
 }
 
 void AcceptHandler(SOCKET client) {
-    Log("connect");
-    instance->Handler(client);
+    // 这里采用HTTP/1.1的keep-alive 不再重开新的socket了
+    while (instance->Handler(client));
 }
 
 void* resize(void* src, size_t srcLen, size_t dstLen) {
@@ -91,6 +91,8 @@ bool HTTPServer::Handler(SOCKET client) {
     }
     // 此时可以区分header和body了
     req.ParseHeader(recvBuffer);
+
+    Log(req.method + string(" ") + req.url);
 
     // 计算header长度
     int headerLength = headerEnd - recvBuffer + 4;
@@ -179,7 +181,6 @@ bool HTTPServer::SendData(SOCKET client, HTTPRespContext& resp)
     if (resp.bodyData != nullptr && resp.contentLength != 0) {
         send(client, resp.bodyData, resp.contentLength, 0);
     }
-    closesocket(client);
     return true;
 }
 
